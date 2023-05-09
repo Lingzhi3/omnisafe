@@ -30,7 +30,7 @@ class Registry:
     def __init__(self, name: str) -> None:
         """Initialize an instance of :class:`Registry`."""
         self._name: str = name
-        self._module_dict: dict[str, type] = {}
+        self._module_dict: dict[str, type] = {} # todo  modeul_dict是什么时候获取值的？？？
 
     @property
     def name(self) -> str:

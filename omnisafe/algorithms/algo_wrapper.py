@@ -95,7 +95,7 @@ class AlgoWrapper:
             assert (
                 self.train_terminal_cfgs['vector_env_nums'] == 1
             ), 'model-based only support vector_env_nums==1!'
-        cfgs = get_default_kwargs_yaml(self.algo, self.env_id, self.algo_type)
+        cfgs = get_default_kwargs_yaml(self.algo, self.env_id, self.algo_type)  # 取出默认超参数
 
         # update the cfgs from custom configurations
         if self.custom_cfgs:
