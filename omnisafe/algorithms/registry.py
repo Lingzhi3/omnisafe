@@ -39,7 +39,7 @@ class Registry:
 
     def get(self, key: str) -> Any:
         """Get the class that has been registered under the given key."""
-        res = self._module_dict.get(key)
+        res = self._module_dict.get(key)    # todo 这里根据key获取了算法类
         if res is None:
             raise KeyError(f'{key} is not in the {self.name} registry')
         return res

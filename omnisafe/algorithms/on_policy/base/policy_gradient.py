@@ -36,7 +36,7 @@ from omnisafe.utils import distributed
 
 @registry.register
 # pylint: disable-next=too-many-instance-attributes,too-few-public-methods,line-too-long
-class PolicyGradient(BaseAlgo):
+class PolicyGradient(BaseAlgo):     # 作为子类，没有init函数会自动调用父类的init
     """The Policy Gradient algorithm.
 
     References:
@@ -61,8 +61,8 @@ class PolicyGradient(BaseAlgo):
             AssertionError: If the number of steps per epoch is not divisible by the number of
                 environments.
         """
-        self._env: OnPolicyAdapter = OnPolicyAdapter(
-            self._env_id,
+        self._env: OnPolicyAdapter = OnPolicyAdapter(           # todo ？？？环境适应于onpolicy算法？？？
+            self._env_id,                                       # 这些属性都继承自基类
             self._cfgs.train_cfgs.vector_env_nums,
             self._seed,
             self._cfgs,

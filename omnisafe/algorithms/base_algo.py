@@ -36,7 +36,7 @@ class BaseAlgo(ABC):  # pylint: disable=too-few-public-methods
         self._env_id: str = env_id
         self._cfgs: Config = cfgs
 
-        assert hasattr(cfgs, 'seed'), 'Please specify the seed in the config file.'
+        assert hasattr(cfgs, 'seed'), 'Please specify the seed in the config file.'     # todo ？？？
         self._seed: int = int(cfgs.seed) + distributed.get_rank() * 1000
         seed_all(self._seed)
 
