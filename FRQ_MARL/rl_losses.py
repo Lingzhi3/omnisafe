@@ -30,7 +30,7 @@ import tensorflow.compat.v1 as tf
 # Temporarily disable v2 behavior until code is updated.
 tf.disable_v2_behavior()
 
-
+# todo 细节1：检查维度是否匹配
 def _assert_rank_and_shape_compatibility(tensors, rank):
   if not tensors:
     raise ValueError("List of tensors cannot be empty")
@@ -88,7 +88,7 @@ def compute_a2c_loss(policy_logits, actions, advantages):
   advantages.get_shape().assert_is_compatible_with(cross_entropy.get_shape())
   return tf.multiply(cross_entropy, advantages)
 
-
+# todo 细节2 交叉熵损失，可能暂时不会考虑
 def compute_entropy(policy_logits):
   return tf.reduce_sum(
       -tf.nn.softmax(policy_logits) * tf.nn.log_softmax(policy_logits), axis=-1)

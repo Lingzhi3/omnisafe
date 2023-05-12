@@ -116,10 +116,10 @@ class TimeStep(
   def mid(self):
     return self.step_type == StepType.MID
 
-  def last(self):
+  def last(self):     # 判断当前步的类型是第一步还是中间步还是最终步
     return self.step_type == StepType.LAST
 
-  def is_simultaneous_move(self):
+  def is_simultaneous_move(self):       # 判断是两个玩家轮流运动还是同时运动
     return self.observations["current_player"] == SIMULTANEOUS_PLAYER_ID
 
   def current_player(self):

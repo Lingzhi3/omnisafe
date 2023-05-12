@@ -273,9 +273,9 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
       action_indices = tf.stack(
           [tf.range(tf.shape(self._q_values)[0]), self._action_ph], axis=-1)
       value_predictions = tf.gather_nd(self._q_values, action_indices)
-      self._critic_loss = tf.reduce_mean(
+      self._critic_loss = tf.reduce_mean(                              # todo 损失函数
           tf.losses.mean_squared_error(
-              labels=self._return_ph, predictions=value_predictions))
+              labels=self._return_ph, predictions=value_predictions))  # todo critic网络的loss有点奇怪，为什么是均方根而不是TD误差？？
     if optimizer_str == "adam":
       self._critic_optimizer = tf.train.AdamOptimizer(
           learning_rate=critic_learning_rate)
@@ -285,16 +285,16 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     else:
       raise ValueError("Not implemented, choose from 'adam' and 'sgd'.")
 
-    def minimize_with_clipping(optimizer, loss):
-      grads_and_vars = optimizer.compute_gradients(loss)
-      if max_global_gradient_norm is not None:
-        grads, variables = zip(*grads_and_vars)
-        grads, _ = tf.clip_by_global_norm(grads, max_global_gradient_norm)
-        grads_and_vars = list(zip(grads, variables))
+    def minimize_with_clipping(optimizer, loss):                               # 梯度剪裁
+      grads_and_vars = optimizer.compute_gradients(loss)                       # 根据损失函数的值得到梯度和变量
+      if max_global_gradient_norm is not None:                                 # 如果有给定最大梯度，就进行梯度剪裁
+        grads, variables = zip(*grads_and_vars)                                # 解耦梯度和变量
+        grads, _ = tf.clip_by_global_norm(grads, max_global_gradient_norm)     # 只对梯度clip
+        grads_and_vars = list(zip(grads, variables))                           # 将剪裁后的梯度和变量重新耦合
 
-      return optimizer.apply_gradients(grads_and_vars)
+      return optimizer.apply_gradients(grads_and_vars)                         # 将梯度应用到优化器
 
-    self._critic_learn_step = minimize_with_clipping(self._critic_optimizer,
+    self._critic_learn_step = minimize_with_clipping(self._critic_optimizer,   # 本质上是一个优化器
                                                      self._critic_loss)
 
     # Pi loss
@@ -333,10 +333,10 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
   def _act(self, info_state, legal_actions):
     # Make a singleton batch for NN compatibility: [1, info_state_size]
     info_state = np.reshape(info_state, [1, -1])
-    policy_probs = self._session.run(
+    policy_probs = self._session.run(                                       # self._policy_probs是一个函数，这里session.run就是跑前向
         self._policy_probs, feed_dict={self._info_state_ph: info_state})
 
-    # Remove illegal actions, re-normalize probs
+    # Remove illegal actions, re-normalize probs                            # todo 细节：去除不合法的动作，重归一化动作的概率
     probs = np.zeros(self._num_actions)
     probs[legal_actions] = policy_probs[0][legal_actions]
     if sum(probs) != 0:
@@ -357,13 +357,14 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     Returns:
       A `rl_agent.StepOutput` containing the action probs and chosen action.
     """
+    # todo: 注意agent.step在一幕交互中的每一步都会执行，在没有结束的时候，只是更新智能体并存储到buffer；一幕结束就从buffer采样更新网络参数
     # Act step: don't act at terminal info states or if its not our turn.
-    if (not time_step.last()) and (
+    if (not time_step.last()) and (                                                    # todo ？？？
         time_step.is_simultaneous_move() or
         self.player_id == time_step.current_player()):
       info_state = time_step.observations["info_state"][self.player_id]
       legal_actions = time_step.observations["legal_actions"][self.player_id]
-      action, probs = self._act(info_state, legal_actions)
+      action, probs = self._act(info_state, legal_actions)          # todo 当前玩家根据两个玩家状态决定要采取的动作,应该跑策略网络前向
     else:
       action = None
       probs = []
@@ -372,18 +373,18 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
       self._step_counter += 1
 
       # Add data points to current episode buffer.
-      if self._prev_time_step:
+      if self._prev_time_step:                                      # 把一个时间步的transition添加到self.episode_data
         self._add_transition(time_step)
 
       # Episode done, add to dataset and maybe learn.
       if time_step.last():
-        self._add_episode_data_to_dataset()
+        self._add_episode_data_to_dataset()                         # 把这一幕所有时间步的self.episode_data添加到self.dataset(buffer)
         self._episode_counter += 1
 
-        if len(self._dataset["returns"]) >= self._batch_size:
+        if len(self._dataset["returns"]) >= self._batch_size:       # batchsize=16
           self._critic_update()                                     # todo ！！这里进行价值网络更新 里面包含session.run()
           self._num_learn_steps += 1
-          if self._num_learn_steps % self._num_critic_before_pi == 0:
+          if self._num_learn_steps % self._num_critic_before_pi == 0:   # 每更新8次价值网络，再更新一次策略网络
             self._pi_update()                                       # todo ！！这里进行策略网络更新 里面包含session.run()
           self._dataset = collections.defaultdict(list)
 
@@ -435,14 +436,14 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
 
   def _add_episode_data_to_dataset(self):
     """Add episode data to the buffer."""
-    info_states = [data.info_state for data in self._episode_data]
+    info_states = [data.info_state for data in self._episode_data]      # todo self.episode_data为什么只有一个时间步？应该是这一局只走了一步就结束了
     rewards = [data.reward for data in self._episode_data]
     discount = [data.discount for data in self._episode_data]
     actions = [data.action for data in self._episode_data]
 
     # Calculate returns
     returns = np.array(rewards)
-    for idx in reversed(range(len(rewards[:-1]))):
+    for idx in reversed(range(len(rewards[:-1]))):      # 计算累积折扣回报
       returns[idx] = (
           rewards[idx] +
           discount[idx] * returns[idx + 1] * self._extra_discount)
@@ -466,7 +467,7 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     assert self._prev_time_step is not None
     legal_actions = (
         self._prev_time_step.observations["legal_actions"][self.player_id])
-    legal_actions_mask = np.zeros(self._num_actions)
+    legal_actions_mask = np.zeros(self._num_actions)        # todo ？？mask是什么？？
     legal_actions_mask[legal_actions] = 1.0
     transition = Transition(
         info_state=(
@@ -485,10 +486,10 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
       The average Critic loss obtained on this batch.
     """
     # TODO(author3): illegal action handling.
-    critic_loss, _ = self._session.run(
-        [self._critic_loss, self._critic_learn_step],
-        feed_dict={
-            self._info_state_ph: self._dataset["info_states"],
+    critic_loss, _ = self._session.run(                         # todo 为什么计算损失要被session.run包裹？？
+        [self._critic_loss, self._critic_learn_step],           # self._critic_loss是优化器，self._critic_learn_step是损失函数
+        feed_dict={                                             # feed_dict是送入计算图的数据，这些数据自动匹配到计算图中之前开辟的placeholder
+            self._info_state_ph: self._dataset["info_states"],  # 为了带入损失函数计算，tf会自动将数据为给模型跑前向，计算预测值，再带入损失函数
             self._action_ph: self._dataset["actions"],
             self._return_ph: self._dataset["returns"],
         })
