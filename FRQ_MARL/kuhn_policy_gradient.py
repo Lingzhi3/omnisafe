@@ -96,7 +96,7 @@ def main(_):
         player_id = time_step.observations["current_player"]    # 获取当前玩家
         agent_output = agents[player_id].step(time_step)        # 当前玩家根据当前时间步的信息time_step，得到agent_output是action和probs
         action_list = [agent_output.action]                     # 当前A玩家根据两个玩家的状态决定选择的动作是加码还是弃牌
-        time_step = env.step(action_list)                       # 根据当前玩家的动作，更新一步全局的环境信息
+        time_step = env.step(action_list)                       # 根据当前玩家的动作，更新一步全局的环境信息。去那句
 
       # Episode is over, step all agents with final info state.     todo 智能体更新网络
       for agent in agents:

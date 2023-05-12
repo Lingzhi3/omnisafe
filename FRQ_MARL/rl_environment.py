@@ -292,10 +292,10 @@ class Environment(object):
     cur_rewards = self._state.rewards()
     for player_id in range(self.num_players):
       rewards.append(cur_rewards[player_id])
-      observations["info_state"].append(
-          self._state.observation_tensor(player_id) if self._use_observation
+      observations["info_state"].append(                  # todo observation_tensor和nformation_state_tensor分别什么意思？？
+          self._state.observation_tensor(player_id) if self._use_observation    # self._use_observation表示是否用观测，还是用状态信息
           else self._state.information_state_tensor(player_id))
-
+      # 当前玩家的状态信息：[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]，观测：[1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0]
       observations["legal_actions"].append(self._state.legal_actions(player_id))
     observations["current_player"] = self._state.current_player()
     discounts = self._discounts
@@ -332,7 +332,7 @@ class Environment(object):
   def step(self, actions):
     """
     根据“操作”更新环境并返回一个“TimeStep”。
-    如果环境在上一步，此对“步骤”的调用将启动一个新的序列和“操作”`将被忽略。
+    如果环境上一步的类型是`StepType.LAST`，此对“step”的调用将启动一个新的序列和“actions”`将被忽略。
     如果在环境之后调用，此方法也将启动一个新序列已被构造，并且尚未调用“reset”。同样，在这种情况下`操作'将被忽略。
 
     Args：
@@ -379,7 +379,7 @@ class Environment(object):
       self._check_legality(actions)
 
     if self.is_turn_based:
-      self._state.apply_action(actions[0])
+      self._state.apply_action(actions[0])    # todo ？？？？self._state到底是什么？？从2 0变成2 0 b
     else:
       self._state.apply_actions(actions)
     self._sample_external_events()
@@ -527,7 +527,7 @@ class Environment(object):
 
   @property
   def num_actions_per_step(self):
-    return 1 if self.is_turn_based else self.num_players
+    return 1 if self.is_turn_based else self.num_players    # 若是轮流
 
   # New RL calls for more advanced use cases (e.g. search + RL).
   @property

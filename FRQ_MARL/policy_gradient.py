@@ -330,7 +330,7 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     elif loss_str == "a2c":
       return rl_losses.BatchA2CLoss
 
-  def _act(self, info_state, legal_actions):
+  def _act(self, info_state, legal_actions):                                # todo 一个玩家根据自己的state执行
     # Make a singleton batch for NN compatibility: [1, info_state_size]
     info_state = np.reshape(info_state, [1, -1])
     policy_probs = self._session.run(                                       # self._policy_probs是一个函数，这里session.run就是跑前向
@@ -338,12 +338,12 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
 
     # Remove illegal actions, re-normalize probs                            # todo 细节：去除不合法的动作，重归一化动作的概率
     probs = np.zeros(self._num_actions)
-    probs[legal_actions] = policy_probs[0][legal_actions]
+    probs[legal_actions] = policy_probs[0][legal_actions]                   # todo 有的情况下玩家可能有某些动作不合法 legal_action可能为[0] [1] [0,1]
     if sum(probs) != 0:
-      probs /= sum(probs)
-    else:
+      probs /= sum(probs)       # 如果只有一个动作合法，probs=[0.63, 0],重归一化后probs=[1.0, 0]
+    else:                       # 如果sum(probs)=0,说明两个动作都不合法，probs=[0,0],legal_actions=[]，probs[legal_actions]的索引没用呀？？
       probs[legal_actions] = 1 / len(legal_actions)
-    action = np.random.choice(len(probs), p=probs)
+    action = np.random.choice(len(probs), p=probs)          # 按概率选择动作
     return action, probs
 
   def step(self, time_step, is_evaluation=False):
@@ -362,8 +362,8 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     if (not time_step.last()) and (                                                    # todo ？？？
         time_step.is_simultaneous_move() or
         self.player_id == time_step.current_player()):
-      info_state = time_step.observations["info_state"][self.player_id]
-      legal_actions = time_step.observations["legal_actions"][self.player_id]
+      info_state = time_step.observations["info_state"][self.player_id]             # 当前玩家的state
+      legal_actions = time_step.observations["legal_actions"][self.player_id]       # 当前玩家的合法动作
       action, probs = self._act(info_state, legal_actions)          # todo 当前玩家根据两个玩家状态决定要采取的动作,应该跑策略网络前向
     else:
       action = None
