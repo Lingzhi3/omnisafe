@@ -85,7 +85,7 @@ class KuhnPokerGame(pyspiel.Game):
 
 class KuhnPokerState(pyspiel.State):
   """A python version of the Kuhn poker state."""
-
+o
   def __init__(self, game):
     """Constructor; should only be called by Game.new_initial_state."""
     super().__init__(game)
@@ -123,7 +123,7 @@ class KuhnPokerState(pyspiel.State):
 
   def _apply_action(self, action):
     """Applies the specified action to the state."""
-    if self.is_chance_node():       # 机会节点
+    if self.is_chance_node():       # 机会节点  todo 为啥没有这个函数？？？
       self.cards.append(action)     # todo 机会节点的action是什么？为什么添加到手牌中？弃牌或下注？
     else:                           # 不是机会节点，当前玩家是顺序玩家
       self.bets.append(action)      # todo 将指定的动作添加到当前玩家的下注列表中？？？
@@ -183,17 +183,17 @@ class KuhnPokerObserver:
       raise ValueError(f"Observation parameters not supported; passed {params}")
 
     # Determine which observation pieces we want to include.
-    pieces = [("player", 2, (2,))]
+    pieces = [("player", 2, (2,))]       # [(name,size,shape)]
     if iig_obs_type.private_info == pyspiel.PrivateInfoType.SINGLE_PLAYER:
       pieces.append(("private_card", 3, (3,)))
     if iig_obs_type.public_info:
-      if iig_obs_type.perfect_recall:
-        pieces.append(("betting", 6, (3, 2)))
-      else:
+      if iig_obs_type.perfect_recall:    # 在完美回忆的情况下，betting观察值包含了每个回合中每个玩家的赌注
+        pieces.append(("betting", 6, (3, 2)))   # 3个回合，2个玩家
+      else:                              # 在非完美回忆的情况下，pot_contribution观察值只包含了每个玩家在当前回合中的总赌注
         pieces.append(("pot_contribution", 2, (2,)))
 
     # Build the single flat tensor.
-    total_size = sum(size for name, size, shape in pieces)
+    total_size = sum(size for name, size, shape in pieces)    # 11维或7维
     self.tensor = np.zeros(total_size, np.float32)
 
     # Build the named & reshaped views of the bits of the flat tensor.
@@ -203,7 +203,7 @@ class KuhnPokerObserver:
       self.dict[name] = self.tensor[index:index + size].reshape(shape)
       index += size
 
-  def set_from(self, state, player):
+  def set_from(self, state, player):    # todo state是什么？？？
     """Updates `tensor` and `dict` to reflect `state` from PoV of `player`."""
     self.tensor.fill(0)
     if "player" in self.dict:

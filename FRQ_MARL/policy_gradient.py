@@ -226,9 +226,9 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     self._info_state_ph = tf.placeholder(
         shape=[None, info_state_size], dtype=tf.float32, name="info_state_ph")
     self._action_ph = tf.placeholder(
-        shape=[None], dtype=tf.int32, name="action_ph")
+        shape=[None, ], dtype=tf.int32, name="action_ph")
     self._return_ph = tf.placeholder(
-        shape=[None], dtype=tf.float32, name="return_ph")
+        shape=[None, ], dtype=tf.float32, name="return_ph")
 
     # Network
     # activate final as we plug logit and qvalue heads afterwards.
@@ -267,7 +267,7 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     if loss_class.__name__ == "BatchA2CLoss":
       self._critic_loss = tf.reduce_mean(
           tf.losses.mean_squared_error(
-              labels=self._return_ph, predictions=self._baseline))
+              labels=self._return_ph, predictions=self._baseline))      # todo 这里损失有问题吧？？？
     else:
       # Q-loss otherwise.
       action_indices = tf.stack(
@@ -487,10 +487,10 @@ optimizer_str：定义要使用哪个优化器的字符串。支持的值 是{sg
     """
     # TODO(author3): illegal action handling.
     critic_loss, _ = self._session.run(                         # todo 为什么计算损失要被session.run包裹？？
-        [self._critic_loss, self._critic_learn_step],           # self._critic_loss是优化器，self._critic_learn_step是损失函数
+        [self._critic_loss, self._critic_learn_step],           # self._critic_loss是损失函数，self._critic_learn_step是优化器
         feed_dict={                                             # feed_dict是送入计算图的数据，这些数据自动匹配到计算图中之前开辟的placeholder
             self._info_state_ph: self._dataset["info_states"],  # 为了带入损失函数计算，tf会自动将数据为给模型跑前向，计算预测值，再带入损失函数
-            self._action_ph: self._dataset["actions"],
+            self._action_ph: self._dataset["actions"],          # info_state:(16,11)  action:(16,)  return:(16,)
             self._return_ph: self._dataset["returns"],
         })
     self._last_critic_loss_value = critic_loss
