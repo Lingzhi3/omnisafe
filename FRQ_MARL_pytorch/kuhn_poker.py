@@ -3,7 +3,7 @@ import numpy as np
 
 
 # 2个玩家的kuhn_poker，目前还没有对玩家的数量有泛化性
-class Kuhn_Poker():
+class Kuhn_Poker:
     def __init__(self):
         self.num_players = 2
         self.deck = [0, 1, 2]           # 所有牌

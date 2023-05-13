@@ -10,12 +10,15 @@ if __name__ == '__main__':
     buffer_size = 100000
     num_players = 2
     epochs = 400000             # 参考原论文？？？
+    gamma = 0.95
+    tau = 0.01
     env = Kuhn_Poker()          # 2个玩家的kuhn_poker，目前还没有对玩家的数量有泛化性
     total_step = 0
     min_train_step = 1000
+    update_target = 100         # 每隔30轮(约60-90步)更新target网络
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    agents = [PG_agent(algo, env.obs_dim, env.action_dim, actor_lr, critic_lr, hid_dim, buffer_size, device)
+    agents = [PG_agent(algo, env.obs_dim, env.action_dim, hid_dim, actor_lr, critic_lr, gamma, tau, buffer_size, device)
               for idx in range(num_players)]        # 2个智能体
 
     for ep in range(epochs):    # 训练
@@ -41,3 +44,6 @@ if __name__ == '__main__':
         # 训练策略网络和价值网络
         if total_step > min_train_step:
             agents[player_id].update()
+        if ep % update_target == 0:
+            agents[player_id].update_target_critic()
+
