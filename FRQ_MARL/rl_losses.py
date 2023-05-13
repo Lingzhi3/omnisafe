@@ -72,7 +72,7 @@ def compute_advantages(policy_logits, action_values, use_relu=False):
 
   baseline = compute_baseline(policy, action_values)
 
-  advantages = action_values - tf.expand_dims(baseline, 1)
+  advantages = action_values - tf.expand_dims(baseline, 1)if
   if use_relu:
     advantages = tf.nn.relu(advantages)
 

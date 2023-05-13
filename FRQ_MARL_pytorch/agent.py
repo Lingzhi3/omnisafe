@@ -52,7 +52,7 @@ class PG_agent:
 
     def take_action(self, obs):
         obs = torch.tensor([obs], dtype=torch.float).to(self.device)      # 数据先变为tensor
-        pi_probs = self.actor(obs)
+        pi_probs = self.actor(obs).cpu().detach().numpy().squeeze()
         action = np.random.choice(self.action_dim, p=pi_probs)
         return action           # 0 or 1
 

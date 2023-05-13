@@ -4,7 +4,7 @@ import torch
 
 
 if __name__ == '__main__':
-    algo = 'RPG'
+    algo = 'QPG'
     actor_lr, critic_lr = 1e-3, 1e-3
     hid_dim = 128
     buffer_size = 100000
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     tau = 0.01
     env = Kuhn_Poker()          # 2个玩家的kuhn_poker，目前还没有对玩家的数量有泛化性
     total_step = 0
-    min_train_step = 1000
+    min_train_step = 10         # todo
     update_target = 100         # 每隔30轮(约60-90步)更新target网络
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,8 +30,7 @@ if __name__ == '__main__':
         #     msg += "{}: {}\n{}\n".format(ep + 1, expl, losses)
         #     logging.info("%s", msg)
 
-        obs = env.reset()  # 初始化环境全局信息 todo 两个玩家都发牌？？？？
-        done = False
+        obs, reward, done = env.reset()  # 初始化环境全局信息 todo 两个玩家都发牌？？？？
         player_id = obs['cur_player']
         while not done:                                                            # 开始交互，直到这一幕结束
             player_id = obs['cur_player']                                          # 获取当前玩家
@@ -41,6 +40,8 @@ if __name__ == '__main__':
                 obs['state'][player_id], action, reward[player_id], next_obs['state'][player_id], done)
             obs = next_obs
             total_step += 1
+        agents[player_id].replay_buffer.add(
+            obs['state'][player_id], action, reward[player_id], next_obs['state'][player_id], done)
         # 训练策略网络和价值网络
         if total_step > min_train_step:
             agents[player_id].update()

@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+import copy
 
 # 2个玩家的kuhn_poker，目前还没有对玩家的数量有泛化性
 class Kuhn_Poker:
@@ -12,7 +12,8 @@ class Kuhn_Poker:
         self.pot = [1.0, 1.0]           # 用于存储奖池中的金额
         self.game_over = False          # 结束信号
         self.next_player = 0         # 当前玩家
-        self.obs_dict = []              # 2个玩家的全局观测信息,每个玩家的信息是一个字典[{"player", "private_card", "betting"},{}]
+        # 2个玩家的全局观测信息,每个玩家的信息是一个字典[{"player", "private_card", "betting"},{}]
+        self.obs_dict = []
         self.obs_dim = 11
         self.action_dim = 2
         self.init_obs()
@@ -24,21 +25,30 @@ class Kuhn_Poker:
         pieces = [("player", 2, (2,)), ("private_card", 3, (3,)), ("betting", 6, (3, 2))]
         total_size = sum(size for name, size, shape in pieces)              # 11维
         arr = np.zeros(total_size, np.float32)
-        for player in range(self.num_players):
-            index = 0
-            for name, size, shape in pieces:
-                self.obs_dict[player][name] = arr[index:index + size].reshape(shape)
-                index += size
+        dict = {}
+        index = 0
+        for name, size, shape in pieces:
+            dict[name] = arr[index:index + size].reshape(shape)
+            index += size
+        for i in range(self.num_players):                                   # 深拷贝
+            self.obs_dict.append(copy.deepcopy(dict))
 
     def reset(self):
+        self.cards = []  # 用于存储2个玩家手中的牌
+        self.bets = []  # 用于存储3个回合玩家的是否下注
+        self.pot = [1.0, 1.0]  # 用于存储奖池中的金额
+        self.game_over = False  # 结束信号
+        self.next_player = 0  # 当前玩家
+        self.obs_dict = []
+        self.init_obs()
         self.deal_cards()
         self.get_obs()
         # 从self.obs_dict中整合最终要返回的观测值
-        next_state = np.zeros(self.num_players, 11)
+        next_state = np.zeros((self.num_players, 11))
         for player in range(self.num_players):
-            next_state[player] = np.concatenate(self.obs_dict[player]['player'].reshape(1, -1),
+            next_state[player] = np.concatenate((self.obs_dict[player]['player'].reshape(1, -1),
                                                 self.obs_dict[player]["private_card"].reshape(1, -1),
-                                                self.obs_dict[player]['betting'].reshape(1, -1))
+                                                self.obs_dict[player]['betting'].reshape(1, -1)), axis=1).squeeze()
         reward = np.array(self.reward())
         obs = {'state': next_state, 'cur_player': self.next_player}
         return obs, reward, self.game_over
@@ -102,11 +112,11 @@ class Kuhn_Poker:
 
         # 从self.obs_dict中整合最终要返回的观测值 (next_state,reward,done,cur_player)
         # next_state和reward都包含两个玩家，state:(2,11)，reward:(2,), done:(1,)为该局是否结束, cur_player:(1,)当前玩家
-        next_state = np.zeros(self.num_players, 11)
+        next_state = np.zeros((self.num_players, 11))
         for player in range(self.num_players):
-            next_state[player] = np.concatenate(self.obs_dict[player]['player'].reshape(1, -1),
+            next_state[player] = np.concatenate((self.obs_dict[player]['player'].reshape(1, -1),
                                                 self.obs_dict[player]["private_card"].reshape(1, -1),
-                                                self.obs_dict[player]['betting'].reshape(1, -1))
+                                                self.obs_dict[player]['betting'].reshape(1, -1)), axis=1).squeeze()
         reward = np.array(self.reward())
         obs = {'state': next_state, 'cur_player': self.next_player}
         return obs, reward, self.game_over
