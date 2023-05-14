@@ -47,7 +47,7 @@ class MLPActor(Actor):
         act_space: OmnisafeSpace,
         hidden_sizes: list[int],
         activation: Activation = 'relu',
-        output_activation: Activation = 'tanh',
+        output_activation: Activation = 'softmax',                                     # todo modify
         weight_initialization_mode: InitFunction = 'kaiming_uniform',
     ) -> None:
         """Initialize an instance of :class:`MLPActor`."""

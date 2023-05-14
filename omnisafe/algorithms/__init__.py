@@ -21,7 +21,7 @@ from omnisafe.algorithms import model_based, off_policy, on_policy
 from omnisafe.algorithms.base_algo import BaseAlgo
 
 # Off-Policy Safe
-from omnisafe.algorithms.off_policy import DDPG, SAC, TD3, DDPGLag, SACLag, TD3Lag
+from omnisafe.algorithms.off_policy import DDPG, SAC, TD3, DDPGLag, SACLag, TD3Lag, QPG, RPG, RMPG        # todo modify
 
 # On-Policy Safe
 from omnisafe.algorithms.on_policy import (
