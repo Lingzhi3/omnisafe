@@ -1,95 +1,42 @@
-
 import numpy as np
 
-
 class RPSGameEnv:
-    def __init__(self):
-        self.action_space = 3
-        self.observation_space = spaces.Box(low=0, high=1, shape=(2, 3), dtype=np.uint8)
-        self.player_obs = None
-        self.opponent_obs = None
-        self.player_action = None
-        self.opponent_action = None
-        self.reset()
+    def __init__(self, rounds):
+        self.num_players = 2
+        self.rounds = rounds                                              # 多少个回合为一轮
+        self.action_space = [0, 1, 2]                                   # 0为石头，1为剪刀，2为布
+        self.mem_actions = np.zeros((self.num_players, self.rounds))     # 记录一轮中所有回合，两个玩家的动作，并作为观测
+        self.round = 0                                                      # 记录当前第几回合
+        self.done = False
+        self.obs_dim = self.num_players * self.rounds
+        self.action_dim = len(self.action_space)
 
     def reset(self):
-        self.player_obs = np.zeros((2, 3), np.uint8)
-        self.opponent_obs = np.zeros((2, 3), np.uint8)
-        return self._get_obs()
+        self.mem_actions = np.zeros((self.num_players, self.rounds))
+        self.round = 0
+        self.done = False
+        return self.mem_actions, self.reward(), self.done
 
-    def step(self, action):
-        self.player_action = action
-        self.opponent_action = np.random.randint(3)
-
-        # update observations
-        self.player_obs[0, self.player_action] = 1
-        self.opponent_obs[1, self.opponent_action] = 1
-
-        # compute reward
-        reward = 0
-        if self.player_action == self.opponent_action:
-            reward = 0
-        elif self.player_action == (self.opponent_action + 1) % 3:
-            reward = 1
+    def reward(self):
+        if self.round == 0:                                 # 刚开局，两人reward均为0
+            return [0, 0]
         else:
-            reward = -1
+            a1 = self.mem_actions[0][self.round-1]
+            a2 = self.mem_actions[1][self.round-1]
+            if a1 == a2:
+                return [0, 0]
+            elif (a1 == 0 and a2 == 1) or (a1 == 2 and a2 == 1) or (a1 == 2 and a2 == 0):       # a1赢
+                return [1, -1]
+            else:
+                return [-1, 1]
 
-        return self._get_obs(), reward, False, {}
-
-    def render(self, mode='human'):
-        if mode == 'human':
-            print("Player observation: ", self.player_obs[0])
-            print("Opponent observation: ", self.opponent_obs[1])
-            if self.player_action is not None and self.opponent_action is not None:
-                print("Player action: {}, Opponent action: {}".format(self.player_action, self.opponent_action))
-
-    def _get_obs(self):
-        return [self.player_obs.flatten(), self.opponent_obs.flatten()]
+    def step(self, actions):                                # 传入第几回合，以及当前回合两个玩家的动作列表
+        self.mem_actions[0][self.round] = actions[0]
+        self.mem_actions[1][self.round] = actions[1]
+        obs = self.mem_actions
+        self.round += 1
+        if self.round == self.rounds:
+            self.done = True
+        return obs, self.reward(), self.done
 
 
-import gym
-import random
-
-env = gym.make('RPSGameEnv')
-
-# Q-table
-q_table = {}
-for i in range(env.observation_space.shape[0]):
-    for j in range(env.observation_space.shape[1]):
-        for action in range(env.action_space.n):
-            q_table[(i, j, action)] = 0
-
-# hyperparameters
-alpha = 0.1
-gamma = 0.6
-epsilon = 0.1
-
-# training loop
-for i in range(10000):
-    state = env.reset()
-    done = False
-
-    while not done:
-        if random.uniform(0, 1) < epsilon:
-            action = env.action_space.sample()  # explore action space
-        else:
-            action = max(list(range(env.action_space.n)),
-                         key=lambda x: q_table[(state[0], state[1], x)])  # exploit learned values
-
-        next_state, reward, done, _ = env.step(action)
-        old_value = q_table[(state[0], state[1], action)]
-        next_max = max([q_table[(next_state[0], next_state[1], a)] for a in range(env.action_space.n)])
-
-        new_value = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
-        q_table[(state[0], state[1], action)] = new_value
-
-        state = next_state
-
-# testing loop
-state = env.reset()
-done = False
-
-while not done:
-    action = max(list(range(env.action_space.n)), key=lambda x: q_table[(state[0], state[1], x)])
-    state, reward, done, _ = env.step(action)
-    env.render()
